@@ -9,7 +9,7 @@ from flask_oauthlib.client import OAuth
 
 app = Flask(__name__)
 app.debug = True
-app.secret_key = 'development'
+app.secret_key = os.getenv('APP_SECRET_KEY', 'development')
 oauth = OAuth(app)
 
 with open(os.path.join(os.getenv('CREDENTIALS_DIR', ''), 'client.json')) as fd:
@@ -38,7 +38,7 @@ def index(path):
 
 @app.route('/login')
 def login():
-    return auth.authorize(callback=url_for('authorized', _external=True))
+    return auth.authorize(callback=os.getenv('APP_URL', '').rstrip('/') + '/login/authorized')
 
 
 @app.route('/logout')
@@ -64,6 +64,10 @@ def get_auth_oauth_token():
     return session.get('auth_token')
 
 
+# WSGI application
+application = app
+
 if __name__ == '__main__':
+    # development mode: run Flask dev server
     logging.basicConfig(level=logging.DEBUG)
     app.run()
