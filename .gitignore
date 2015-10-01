@@ -1,1 +1,6 @@
 client.json
+*.egg*
+build/
+dist/
+.coverage
+.cache
