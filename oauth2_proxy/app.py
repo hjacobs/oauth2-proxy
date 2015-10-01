@@ -24,7 +24,7 @@ auth = oauth.remote_app(
     base_url='https://auth.zalando.com/',
     request_token_url=None,
     access_token_method='POST',
-    access_token_url='https://auth.zalando.com/oauth2/access_token',
+    access_token_url='https://auth.zalando.com/oauth2/access_token?realm=employees',
     authorize_url='https://auth.zalando.com/oauth2/authorize?realm=employees'
 )
 
@@ -33,6 +33,8 @@ auth = oauth.remote_app(
 @app.route('/<path:path>')
 def index(path):
     if 'auth_token' in session:
+        if not path:
+            path = 'index.html'
         return send_from_directory(os.getenv('APP_ROOT_DIR', './'), path)
     return redirect(url_for('login'))
 
@@ -61,6 +63,8 @@ def authorized():
             request.args['error'],
             request.args['error_description']
         )
+    if not isinstance(resp, dict):
+        return 'Invalid auth response'
     session['auth_token'] = (resp['access_token'], '')
     return redirect(url_for('index'))
 
