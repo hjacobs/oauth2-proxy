@@ -37,6 +37,11 @@ def index(path):
     return redirect(url_for('login'))
 
 
+@app.route('/health')
+def health():
+    return 'OK'
+
+
 @app.route('/login')
 def login():
     return auth.authorize(callback=os.getenv('APP_URL', '').rstrip('/') + '/login/authorized')
