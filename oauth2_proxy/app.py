@@ -6,6 +6,7 @@ import os
 from flask import Flask, redirect, url_for, session, request, send_from_directory
 from flask_oauthlib.client import OAuth
 
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 app.debug = True
@@ -32,7 +33,7 @@ auth = oauth.remote_app(
 @app.route('/<path:path>')
 def index(path):
     if 'auth_token' in session:
-        return send_from_directory('./', path)
+        return send_from_directory(os.getenv('APP_ROOT_DIR', './'), path)
     return redirect(url_for('login'))
 
 
@@ -69,5 +70,4 @@ application = app
 
 if __name__ == '__main__':
     # development mode: run Flask dev server
-    logging.basicConfig(level=logging.DEBUG)
     app.run()
