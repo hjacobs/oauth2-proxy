@@ -8,7 +8,14 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-version = '0.5'
+
+def read_version(package):
+    with open(os.path.join(package, '__init__.py'), 'r') as fd:
+        for line in fd:
+            if line.startswith('__version__ = '):
+                return line.split()[-1].strip().strip("'")
+
+version = read_version('oauth2_proxy')
 
 __location__ = os.path.join(os.getcwd(), os.path.dirname(inspect.getfile(inspect.currentframe())))
 
