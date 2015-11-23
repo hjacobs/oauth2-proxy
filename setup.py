@@ -53,6 +53,7 @@ setup(
     url='https://github.com/zalando-stups/oauth2-proxy',
     keywords='oauth flask proxy serve',
     license='Apache License Version 2.0',
+    setup_requires=['flake8'],
     install_requires=get_install_requirements('requirements.txt'),
     tests_require=['pytest-cov', 'pytest', 'mock'],
     cmdclass={'test': PyTest},
