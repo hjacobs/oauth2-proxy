@@ -26,15 +26,19 @@ def get_install_requirements(path):
 
 
 class PyTest(TestCommand):
+
+    user_options = [('cov-html=', None, 'Generate junit html report')]
+
     def initialize_options(self):
         TestCommand.initialize_options(self)
         self.cov = None
         self.pytest_args = ['--cov', 'oauth2_proxy', '--cov-report', 'term-missing']
+        self.cov_html = False
 
     def finalize_options(self):
         TestCommand.finalize_options(self)
-        self.test_args = []
-        self.test_suite = True
+        if self.cov_html:
+            self.pytest_args.extend(['--cov-report', 'html'])
 
     def run_tests(self):
         import pytest
@@ -57,6 +61,7 @@ setup(
     install_requires=get_install_requirements('requirements.txt'),
     tests_require=['pytest-cov', 'pytest', 'mock'],
     cmdclass={'test': PyTest},
+    test_suite='tests',
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.4',
