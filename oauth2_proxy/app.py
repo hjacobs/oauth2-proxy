@@ -4,22 +4,45 @@ import json
 import logging
 import os
 from flask import Flask, redirect, url_for, session, request, send_from_directory
-from flask_oauthlib.client import OAuth
+from flask_oauthlib.client import OAuth, OAuthRemoteApp
 
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
-app.debug = True
+app.debug = os.getenv('APP_DEBUG') == 'true'
 app.secret_key = os.getenv('APP_SECRET_KEY', 'development')
 oauth = OAuth(app)
 
-with open(os.path.join(os.getenv('CREDENTIALS_DIR', ''), 'client.json')) as fd:
-    client_credentials = json.load(fd)
 
-auth = oauth.remote_app(
+class OAuthRemoteAppWithRefresh(OAuthRemoteApp):
+    '''Same as flask_oauthlib.client.OAuthRemoteApp, but always loads client credentials from file.'''
+
+    def __init__(self, oauth, name, **kwargs):
+        # constructor expects some values, so make it happy..
+        kwargs['consumer_key'] = 'not-needed-here'
+        kwargs['consumer_secret'] = 'not-needed-here'
+        OAuthRemoteApp.__init__(self, oauth, name, **kwargs)
+
+    def refresh_credentials(self):
+        with open(os.path.join(os.getenv('CREDENTIALS_DIR', ''), 'client.json')) as fd:
+            client_credentials = json.load(fd)
+        self._consumer_key = client_credentials['client_id']
+        self._consumer_secret = client_credentials['client_secret']
+
+    @property
+    def consumer_key(self):
+        self.refresh_credentials()
+        return self._consumer_key
+
+    @property
+    def consumer_secrect(self):
+        self.refresh_credentials()
+        return self._consumer_secret
+
+
+auth = OAuthRemoteAppWithRefresh(
+    oauth,
     'auth',
-    consumer_key=client_credentials['client_id'],
-    consumer_secret=client_credentials['client_secret'],
     request_token_params={'scope': 'uid'},
     base_url='https://auth.zalando.com/',
     request_token_url=None,
@@ -27,6 +50,7 @@ auth = oauth.remote_app(
     access_token_url='https://auth.zalando.com/oauth2/access_token?realm=employees',
     authorize_url='https://auth.zalando.com/oauth2/authorize?realm=employees'
 )
+oauth.remote_apps['auth'] = auth
 
 
 @app.route('/', defaults={'path': ''})
