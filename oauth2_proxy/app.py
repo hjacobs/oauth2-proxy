@@ -3,10 +3,19 @@
 import json
 import logging
 import os
+import requests
+import flask
 from flask import Flask, redirect, url_for, session, request, send_from_directory
 from flask_oauthlib.client import OAuth, OAuthRemoteApp
+from urllib.parse import urlparse
 
 logging.basicConfig(level=logging.DEBUG)
+logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.INFO)
+
+sess = requests.Session()
+adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
+sess.mount('http://', adapter)
+sess.mount('https://', adapter)
 
 app = Flask(__name__)
 app.debug = os.getenv('APP_DEBUG') == 'true'
@@ -52,14 +61,34 @@ auth = OAuthRemoteAppWithRefresh(
 )
 oauth.remote_apps['auth'] = auth
 
+UPSTREAMS = os.getenv('APP_UPSTREAM', '').split(',')
+
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def index(path):
     if 'auth_token' in session:
-        if not path:
-            path = 'index.html'
-        return send_from_directory(os.getenv('APP_ROOT_DIR', './'), path)
+        if UPSTREAMS:
+            abs_path = '/{}'.format(path.strip('/'))
+            for url in UPSTREAMS:
+                o = urlparse(url)
+                if abs_path.startswith(o.path):
+                    parts = flask.request.url.split('/', 3)
+                    path_query = parts[-1]
+                    upstream_url = '{scheme}://{netloc}/{path}'.format(scheme=o.scheme, netloc=o.netloc,
+                                                                       path=path_query)
+                    upstream_response = sess.get(upstream_url)
+                    headers = {}
+                    for key, val in upstream_response.headers.items():
+                        if key in set(['Content-Type']):
+                            headers[key] = val
+                    response = flask.Response(upstream_response.content, upstream_response.status_code, headers)
+                    return response
+        else:
+            # serve static files
+            if not path:
+                path = 'index.html'
+            return send_from_directory(os.getenv('APP_ROOT_DIR', './'), path)
     return redirect(url_for('login'))
 
 
@@ -87,6 +116,7 @@ def authorized():
             request.args['error'],
             request.args['error_description']
         )
+    print(resp)
     if not isinstance(resp, dict):
         return 'Invalid auth response'
     session['auth_token'] = (resp['access_token'], '')
