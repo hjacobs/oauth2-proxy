@@ -61,7 +61,7 @@ auth = OAuthRemoteAppWithRefresh(
 )
 oauth.remote_apps['auth'] = auth
 
-UPSTREAMS = os.getenv('APP_UPSTREAM', '').split(',')
+UPSTREAMS = list(filter(None, os.getenv('APP_UPSTREAM', '').split(',')))
 
 
 @app.route('/', defaults={'path': ''})
