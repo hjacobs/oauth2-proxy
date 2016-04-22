@@ -56,8 +56,8 @@ auth = OAuthRemoteAppWithRefresh(
     base_url='https://auth.zalando.com/',
     request_token_url=None,
     access_token_method='POST',
-    access_token_url='https://auth.zalando.com/oauth2/access_token?realm=employees',
-    authorize_url='https://auth.zalando.com/oauth2/authorize?realm=employees'
+    access_token_url='https://auth.zalando.com/oauth2/access_token?realm=/employees',
+    authorize_url='https://auth.zalando.com/oauth2/authorize?realm=/employees'
 )
 oauth.remote_apps['auth'] = auth
 
